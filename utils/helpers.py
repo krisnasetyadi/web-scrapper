@@ -60,4 +60,14 @@ def findActiveButtons(array, attr):
             if attr and item.get_attribute(attr) == 'true':
                 return item.text
         return None
-    
+
+def flattenCustomerReviews(data, key1='', key2='', key3=''):
+    flattened_data = []
+    for item in [data]:
+        for review in item[key1]:
+            flattened_item = item.copy()
+            flattened_item[key2] = review[key2]
+            flattened_item[key3] = review[key3]
+            del flattened_item[key1]
+            flattened_data.append(flattened_item)
+    return flattened_data

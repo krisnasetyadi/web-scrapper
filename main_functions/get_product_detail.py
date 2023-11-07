@@ -7,14 +7,14 @@ import time
 import math
 
 # import custom helper functions
-from utils.helpers import findActiveButtons, print_message
+from utils.helpers import findActiveButtons, print_message, flattenCustomerReviews
 
 
-def getReviewDetail(dvr):
+def getReviewDetail(driver):
     print('MANTAIN REVIEW')
 
     time.sleep(60)
-    detail_content = dvr.page_source
+    detail_content = driver.page_source
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
 
     total_reviews_element = detail_soup.find('p', class_='css-e84n4s-unf-heading e1qvo2ff8')
@@ -36,7 +36,7 @@ def getReviewDetail(dvr):
             print('navigation_controller', navigation_controller)
 
             find_total_button_controller = navigation_controller.find_all('button', class_='css-bugrro-unf-pagination-item') if navigation_controller is not None else None
-            find_total_button_controller_element = dvr.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]') if navigation_controller is not None else None
+            find_total_button_controller_element = driver.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]') if navigation_controller is not None else None
             print('find_total_button_controller_find_total_button_controller', find_total_button_controller[0] if navigation_controller is not None else 'kosong')
             print('FIND_TOTAL_BUTTON_PAGE', find_total_button_controller[-1].text if find_total_button_controller is not None else '')      
          
@@ -97,15 +97,13 @@ def getReviewDetail(dvr):
         return []
 
 
-def getSellerDetail(dvr):
-    wait = WebDriverWait(dvr, 10)
+def getSellerDetail(driver):
+    wait = WebDriverWait(driver, 10)
     wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'css-1wbjdax')))
-    detail_content = dvr.page_source
+    detail_content = driver.page_source
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
 
-    seller_container = detail_soup.find('div', class_='css-1wbjdax')
     seller_name = detail_soup.find('div', class_='css-k008qs')
-    seller_image = detail_soup.find('img', class_='css-ebxddb')
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
     seller_name = detail_soup.find('h2', class_='css-1wdzqxj-unf-heading e1qvo2ff2').text 
     seller_performance = detail_soup.find_all('div', class_='css-1h5fp8g')
@@ -113,7 +111,7 @@ def getSellerDetail(dvr):
     seller_rate = seller_performance[0].find('span').text
     seller_location_element = detail_soup.find('h2', class_='css-1pd07ge-unf-heading e1qvo2ff2')
     seller_location = seller_location_element.find('b').text
-    seller_category = dvr.find_element(by=By.CLASS_NAME, value='css-ebxddb').get_attribute('alt')
+    seller_category = driver.find_element(by=By.CLASS_NAME, value='css-ebxddb').get_attribute('alt')
 
     seler_section = {
         'seller_name' : seller_name,
@@ -124,13 +122,13 @@ def getSellerDetail(dvr):
     }
     return seler_section
 
-def getProductDetail(dvr):
-    detail_content = dvr.page_source
+def getProductDetail(driver):
+    detail_content = driver.page_source
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
     time.sleep(10)
     PRODUCT_DETAIL = {}
     
-    # PRODUCT SECTION
+    #__PRODUCT SECTION
     product_name = detail_soup.find('h1', class_='css-1os9jjn').text
     product_category = detail_soup.find_all('li', class_='css-d5bnys')
     product_category_index = product_category[1].text
@@ -138,9 +136,13 @@ def getProductDetail(dvr):
     product_price_container = detail_soup.find('div', class_='css-chstwd')
     product_original_price = product_price_container.find('div', class_='original-price').text if(product_price_container.find('div', class_='original-price')) else ''
     product_price = product_price_container.find('div', class_='price').text
-    quantity_of_product_sold = detail_soup.find_all('p', class_='css-vni7t6-unf-heading e1qvo2ff8')[2] if  len(detail_soup.find_all('p', class_='css-vni7t6-unf-heading e1qvo2ff8')) else ''
-    get_quanity_of_product_sold = quantity_of_product_sold.text if quantity_of_product_sold != '' else ''
-    
+    quantity_of_sold_product_container = detail_soup.find('div', class_='css-bczdt6')
+    print('quantity_of_sold_product_container', quantity_of_sold_product_container)
+    print('get_sold_prodct_array', detail_soup.find_all('p', class_='css-vni7t6-unf-heading e1qvo2ff8'))
+    quantity_of_product_sold = quantity_of_sold_product_container.find('p', class_='css-vni7t6-unf-heading e1qvo2ff8')
+    print('quantity_of_product_sold', quantity_of_product_sold)
+    get_quanity_of_product_sold = quantity_of_product_sold.text if quantity_of_product_sold else ''
+     
     product_detail = {
         'product_name': product_name,
         'product_category_index': product_category_index,
@@ -148,44 +150,32 @@ def getProductDetail(dvr):
         'product_sold_quantity': get_quanity_of_product_sold if get_quanity_of_product_sold else '',
         'product_price': product_price
     }
-    
+    # UPDATE-PRODUCT-SECTION #
     PRODUCT_DETAIL.update(product_detail)
     
-    # SELLER SECTION
+    #__SELLER SECTION
     
     scroll_height = 500
-    dvr.execute_script(f"window.scrollBy(0, {scroll_height});")
+    driver.execute_script(f"window.scrollBy(0, {scroll_height});")
     time.sleep(10)
     
-    SELLER_DETAIL = getSellerDetail(dvr)
-
-
-    # CUSTOMER REVIEW SECTION
-    scroll_height2 = 1000
-    dvr.execute_script(f"window.scrollBy(0, {scroll_height2});")
-    
-    REVIEW_DETAIL = getReviewDetail(dvr)
-
-
-    statement = ''
-    object_statement = {}
-
-    for index, item in enumerate(REVIEW_DETAIL):
-        print(index)
-        if index == 0:
-            SELLER_DETAIL.update(item)
-        else:
-            object_statement = item
-            
-    product_detail_merged =  f'{statement}, {object_statement}' if object_statement and len(REVIEW_DETAIL) > 0 else statement
-    
-    # update seller section
+    SELLER_DETAIL = getSellerDetail(driver)
+    # UPDATE-SELLER-SECTION #
     PRODUCT_DETAIL.update(SELLER_DETAIL)
+
+    #__CUSTOMER REVIEW SECTION
+    scroll_height2 = 1000
+    driver.execute_script(f"window.scrollBy(0, {scroll_height2});")
     
-    #update customer section
-    PRODUCT_DETAIL['customer'] = product_detail_merged if len(REVIEW_DETAIL) > 0 else "'customer_name': '', 'customer_review': ''"
- 
-    
-    ## PRODUCT DETAIL DONE GO BACK
+    REVIEW_DETAIL = getReviewDetail(driver)
+    # UPDATE-REVIEW_DETAIL-SECTION #
+    print_message(f'REVIEW_DETAIL {REVIEW_DETAIL}', 'info', True)
     print_message(f'PRODUCT_DETAIL_SECTION {PRODUCT_DETAIL}', 'info', True )
-    return PRODUCT_DETAIL
+    PRODUCT_DETAIL_RESULT = {}
+    if len(REVIEW_DETAIL) > 0:
+        PRODUCT_DETAIL['customer_reviews'] = REVIEW_DETAIL
+        PRODUCT_DETAIL_RESULT['result'] = flattenCustomerReviews(PRODUCT_DETAIL, 'customer_reviews', 'customer_name', 'customer_review')
+    else:
+        PRODUCT_DETAIL.update({'customer_name': '', 'customer_review': ''})
+    print_message(f'PRODUCT_DETAIL_RESULT {PRODUCT_DETAIL_RESULT}', 'info', True)
+    return PRODUCT_DETAIL_RESULT['result'] if PRODUCT_DETAIL_RESULT else PRODUCT_DETAIL
