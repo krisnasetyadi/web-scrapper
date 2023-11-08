@@ -127,7 +127,8 @@ def getProductDetail(driver):
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
     time.sleep(10)
     PRODUCT_DETAIL = {}
-    
+    wait = WebDriverWait(driver, 30)
+
     #__PRODUCT SECTION
     product_name = detail_soup.find('h1', class_='css-1os9jjn').text
     product_category = detail_soup.find_all('li', class_='css-d5bnys')
@@ -136,13 +137,15 @@ def getProductDetail(driver):
     product_price_container = detail_soup.find('div', class_='css-chstwd')
     product_original_price = product_price_container.find('div', class_='original-price').text if(product_price_container.find('div', class_='original-price')) else ''
     product_price = product_price_container.find('div', class_='price').text
+    
+    wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'css-bczdt6')))
     quantity_of_sold_product_container = detail_soup.find('div', class_='css-bczdt6')
     print('quantity_of_sold_product_container', quantity_of_sold_product_container)
     print('get_sold_prodct_array', detail_soup.find_all('p', class_='css-vni7t6-unf-heading e1qvo2ff8'))
     quantity_of_product_sold = quantity_of_sold_product_container.find('p', class_='css-vni7t6-unf-heading e1qvo2ff8')
     print('quantity_of_product_sold', quantity_of_product_sold)
     get_quanity_of_product_sold = quantity_of_product_sold.text if quantity_of_product_sold else ''
-     
+    
     product_detail = {
         'product_name': product_name,
         'product_category_index': product_category_index,
