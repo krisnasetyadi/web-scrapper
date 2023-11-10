@@ -19,7 +19,8 @@ def getReviewDetail(driver):
 
     total_reviews_element = detail_soup.find('p', class_='css-e84n4s-unf-heading e1qvo2ff8')
     current_rows_of_reviewers = detail_soup.find_all('article', class_='css-72zbc4')
-    print('current_rows_of_reviewers LENGTH', len(current_rows_of_reviewers))
+    total_rows_per_page = len(current_rows_of_reviewers)
+    print('total_rows_per_page', total_rows_per_page)
     print('current_rows_x', current_rows_of_reviewers)
     if len(current_rows_of_reviewers) > 0:
         total_review_string = total_reviews_element.text
@@ -50,11 +51,11 @@ def getReviewDetail(driver):
             review_list = []
             review_count = 0
             review_count_per_page = 0
-            REVIEW_PER_PAGE = 10
-            
+            MAX_ROWS_PER_PAGE = 10
+
             while review_count < int(total_review):
                 if current_active_button is not None:
-                    while review_count_per_page < REVIEW_PER_PAGE:
+                    while review_count_per_page < total_rows_per_page:
                         for review in current_rows_of_reviewers:
                             customer_name = review.find('span', class_='name').text
                             customer_review_container = review.find('p', class_='css-ed1s1j-unf-heading e1qvo2ff8')
@@ -69,12 +70,20 @@ def getReviewDetail(driver):
                             review_count += 1
                             review_count_per_page += 1
                     else:
-                        current_page = math.floor(review_count / REVIEW_PER_PAGE)
+                        current_page = math.floor(review_count / MAX_ROWS_PER_PAGE)
                         print('current_page', current_page)
                         button_controller_length = len(find_total_button_controller) if navigation_controller is not None else None
                         print('button_controller_length', button_controller_length)
                         print('find_controller_button', find_total_button_controller_element[current_page + 1 if current_page < button_controller_length else current_page] if navigation_controller is not None else None)
-                        find_total_button_controller_element[current_page + 1 if current_page < button_controller_length else current_page].click() if navigation_controller is not None else None
+                        
+                        # why CLASS_NAME "css-bugrro-unf-pagination-item" declare twice ? to always refresh /fetch the element
+                        find_button_review_controller_element = driver.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]') if navigation_controller is not None else None
+                        if current_page < button_controller_length:
+                            find_button_review_controller_element[current_page + 1].click() if navigation_controller is not None else None
+                        else:
+                            # has the no button ahead finish
+                            find_button_review_controller_element = None
+                            return review_list
                         review_count_per_page = 0
 #                       Load element
                         time.sleep(30)
