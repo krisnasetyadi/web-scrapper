@@ -1,4 +1,3 @@
-from utils.helpers import print_message
 import time
 import pandas as pd
 from selenium import webdriver
@@ -9,10 +8,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from bs4 import BeautifulSoup
 # F U N C T I O N S
-
+from utils.helpers import print_message, scrollFromToptoBottom
 from main_functions.config_parameters import BASE_SEARCH_URL_PARAMETER, PROXY_SERVER
-from utils.helpers import scrollFromToptoBottom
 from main_functions.get_product_detail import getProductDetail
+from utils.product_helpers import iterateProductPerPage
 
 MAX_RETRY = 10
 
@@ -33,23 +32,23 @@ def scrapeTokopediaData(urls = []):
 
     if find_error_el is None:
         time.sleep(60)
-        print_message(f'REQUESTING_URL . . . {requestURL}', 'info')
+        scrollFromToptoBottom(driver, 'css-70qvj9', False, True, 10)
 
+        iterateProductPerPage(driver, WebDriverWait(driver, 60))
         wait = WebDriverWait(driver, 60)
-    
-        wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="css-llwpbs"]')))
-        all_item_each_page = driver.find_elements(By.XPATH, '//div[@class="css-llwpbs"]')
+        # css-llwpbs
+        wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="prd_container-card"]')))
+        all_item_each_page = driver.find_elements(By.XPATH, '//div[@class="prd_container-card"]')
         total_item_per_page = len(all_item_each_page)
-        print('each_item LENGTH', total_item_per_page )
 
         LIST_OF_PRODUCT = []
         item_counter_page = 0
         detail_urls_per_page = []
-        
+           
         while item_counter_page < total_item_per_page:
             for item_index in range(total_item_per_page):
                 print('item_counter_page', item_counter_page)
-                list_item_each_page = driver.find_elements(By.XPATH, '//div[@class="css-llwpbs"]')
+                list_item_each_page = driver.find_elements(By.XPATH, '//div[@class="prd_container-card"]')
                 item = list_item_each_page[item_index]
                 print('item', item)
                 wait.until(EC.presence_of_element_located((By.TAG_NAME, 'a')))

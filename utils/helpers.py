@@ -19,7 +19,7 @@ def print_message(text, color, bold=False):
         return print(f"{color_code}{text}\033[0m")
 
 
-def scrollFromToptoBottom(dvr, boundary_component, byId=False, no_scroll_top=False):
+def scrollFromToptoBottom(dvr, boundary_component, byId=False, no_scroll_top=False, sleepTime = 5):
     scrolled = False
     timeout_scroll = 30
     scroll_count = 0
@@ -44,7 +44,7 @@ def scrollFromToptoBottom(dvr, boundary_component, byId=False, no_scroll_top=Fal
             dvr.execute_script(f"window.scrollBy(0, {scroll_height});")
             scroll_count += 1
             print('scroll_count', scroll_count)
-            time.sleep(5)
+            time.sleep(sleepTime)
         
     if is_boundary_component or scroll_count == timeout_scroll and not no_scroll_top:
         dvr.execute_script("window.scrollTo(0, 0);")
