@@ -22,13 +22,21 @@ def getReviewDetail(driver):
     total_rows_per_page = len(current_rows_of_reviewers)
     print('total_rows_per_page', total_rows_per_page)
     print('current_rows_x', current_rows_of_reviewers)
+
+    MAX_BUTTON_PER_NAV = 9
+
+    # there's some reviews
     if len(current_rows_of_reviewers) > 0:
+        review_list = []
+
         total_review_string = total_reviews_element.text
         total_review = total_review_string.split()[3] if total_review_string else None
         print('TOTAL_REVIEW', total_review)
+        
         if total_review is not None:
             FIND_REVIEW_PAGE_CONTROLLER = detail_soup.find('div', class_='css-1xqkwi8')
             print('FIND_REVIEW_PAGE_CONTROLLER', FIND_REVIEW_PAGE_CONTROLLER)
+
             navigation_controller = ''
             if FIND_REVIEW_PAGE_CONTROLLER:
                 navigation_controller = detail_soup.find('nav', class_='css-txlndr-unf-pagination')
@@ -36,91 +44,112 @@ def getReviewDetail(driver):
                 navigation_controller = None
             print('navigation_controller', navigation_controller)
 
-            find_total_button_controller = navigation_controller.find_all('button', class_='css-bugrro-unf-pagination-item') if navigation_controller is not None else None
-            find_total_button_controller_element = driver.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]') if navigation_controller is not None else None
-            print('find_total_button_controller_find_total_button_controller', find_total_button_controller[0] if navigation_controller is not None else 'kosong')
-            print('FIND_TOTAL_BUTTON_PAGE', find_total_button_controller[-1].text if find_total_button_controller is not None else '')      
-         
-            current_active_button = None
-            if find_total_button_controller is not None and find_total_button_controller_element is not None:
-                current_active_button =  findActiveButtons(find_total_button_controller_element, 'data-active')
-            else:
-                current_active_button = None
+            if navigation_controller is not None:
+                # has pagination
+                nav_button_container = driver.find_element(By.XPATH, '//div[@class="css-1xqkwi8"]')
+                nav_button_element = nav_button_container.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]')
+                last_pagination_button = nav_button_element[MAX_BUTTON_PER_NAV - 1].text if len(nav_button_element) == MAX_BUTTON_PER_NAV  else nav_button_element[len(nav_button_element) - 1].text
                 
-            print('current_active_button', current_active_button)
-            review_list = []
-            review_count = 0
-            review_count_per_page = 0
-            MAX_ROWS_PER_PAGE = 10
+                for i in range(int(last_pagination_button)):
+                    with_pagination_review_count = 0
+                    with_pagination_review_count_per_page = 0
+             
+                    current_active_button = findActiveButtons(nav_button_element, 'data-active')
+                  
+                    print('current_active_button', current_active_button)
 
-            while review_count < int(total_review):
-                if current_active_button is not None:
-                    while review_count_per_page < total_rows_per_page:
-                        for review in current_rows_of_reviewers:
-                            customer_name = review.find('span', class_='name').text
-                            customer_review_container = review.find('p', class_='css-ed1s1j-unf-heading e1qvo2ff8')
-                            customer_review = customer_review_container.find('span').text
-
-                            customer_review_item = {
-                                'customer_name': customer_name,
-                                'customer_review': customer_review
-                            }
-                            review_list.append(customer_review_item)
-                            print('review_count_current_active_button', review_count)
-                            review_count += 1
-                            review_count_per_page += 1
-                    else:
-                        current_page = math.floor(review_count / MAX_ROWS_PER_PAGE)
-                        print('current_page', current_page)
-                        button_controller_length = len(find_total_button_controller) if navigation_controller is not None else None
-                        print('button_controller_length', button_controller_length)
-                        print('find_controller_button', find_total_button_controller_element[current_page + 1 if current_page < button_controller_length else current_page] if navigation_controller is not None else None)
-                        
-                        # why CLASS_NAME "css-bugrro-unf-pagination-item" declare twice ? to always refresh /fetch the element
-                        find_button_review_controller_element = driver.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]') if navigation_controller is not None else None
-                        if current_page < button_controller_length:
-                            find_button_review_controller_element[current_page + 1].click() if navigation_controller is not None else None
-                        else:
-                            # has the no button ahead finish
-                            find_button_review_controller_element = None
-                            return review_list
-                        review_count_per_page = 0
-#                       Load element
-                        time.sleep(30)
-                else:
                     for review in current_rows_of_reviewers:
                         customer_name = review.find('span', class_='name').text
                         customer_review_container = review.find('p', class_='css-ed1s1j-unf-heading e1qvo2ff8')
-                        customer_review = customer_review_container.find('span').text
+                        customer_review = customer_review_container.find('span').text if customer_review_container else ''
 
                         customer_review_item = {
                             'customer_name': customer_name,
                             'customer_review': customer_review
                         }
+
                         review_list.append(customer_review_item)
-                        print('review_count', review_count)
-                        review_count += 1
-        print_message(f'REVIEW - LIST {review_list}', 'info', True)
-        return review_list
+                        with_pagination_review_count += 1
+                        with_pagination_review_count_per_page += 1
+                    print('iteration_with_pagination', i)
+                    if with_pagination_review_count_per_page == len(current_rows_of_reviewers):
+
+                        # why CLASS_NAME "css-bugrro-unf-pagination-item" declare twice ? to always refresh /fetch the element
+                        nav_button_container_second = driver.find_element(By.XPATH, '//div[@class="css-1xqkwi8"]')
+                        
+                        next_element = nav_button_container_second.find_elements(By.XPATH, '//button[@class="css-16uzo3v-unf-pagination-item"]')[1]
+                        next_element_aria_label = next_element.get_attribute('aria-label')
+                        next_element_is_disabled = next_element.get_attribute('disabled')
+
+                        if next_element_is_disabled:
+                            print(f'next_element_is_disabled: finished reviewed {review_list}')
+                            return review_list
+                        elif next_element_aria_label == 'Laman berikutnya' and not next_element_is_disabled:
+                            next_element.click()
+
+                            # reset the value and click
+                            with_pagination_review_count_per_page = 0
+
+                            time.sleep(5)
+                            # Fetch the new set of current_rows_of_reviewers
+                            
+                            detail_content = driver.page_source
+                            detail_soup_second = BeautifulSoup(detail_content, 'html.parser')
+
+                            current_rows_of_reviewers = detail_soup_second.find_all('article', class_='css-72zbc4')
+                            nav_button_element_second = nav_button_container.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]')
+                            current_active_button = findActiveButtons(nav_button_element_second, 'data-active')
+            else:
+                # without pagination 
+                
+                detail_content = driver.page_source
+                detail_soup_second = BeautifulSoup(detail_content, 'html.parser')
+                current_rows_of_reviewers = detail_soup_second.find_all('article', class_='css-72zbc4')
+                print('without pagination_lenght', len(current_rows_of_reviewers))
+                no_pagination_review_count = 0
+                no_pagination_review_count_per_page = 0
+
+                for review in current_rows_of_reviewers:
+                    customer_name = review.find('span', class_='name').text
+                    customer_review_container = review.find('p', class_='css-ed1s1j-unf-heading e1qvo2ff8')
+                    customer_review = customer_review_container.find('span').text if customer_review_container else ''
+
+                    customer_review_item = {
+                        'customer_name': customer_name,
+                        'customer_review': customer_review
+                    }
+
+                    review_list.append(customer_review_item)
+
+                    no_pagination_review_count += 1
+                    no_pagination_review_count_per_page += 1
+                    print('reviewList without pagination', customer_review_item)
+                return review_list
     else:
-        return []
+        # empty comments
+        return review_list
+                
 
 
 def getSellerDetail(driver):
-    wait = WebDriverWait(driver, 10)
-    wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'css-1wbjdax')))
+    # wait = WebDriverWait(driver, 10)
+    # wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'css-1wbjdax')))
+    print('seller detail executed')
     detail_content = driver.page_source
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
-
-    seller_name = detail_soup.find('div', class_='css-k008qs')
+    
+    # seller_name = detail_soup.find('div', class_='css-k008qs')
+    # print('seller_name', seller_name)
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
     seller_name = detail_soup.find('h2', class_='css-1wdzqxj-unf-heading e1qvo2ff2').text 
+    print('seller_name', seller_name)
     seller_performance = detail_soup.find_all('div', class_='css-1h5fp8g')
     seller_responsiveness = seller_performance[1].find('span').text
     seller_rate = seller_performance[0].find('span').text
     seller_location_element = detail_soup.find('h2', class_='css-1pd07ge-unf-heading e1qvo2ff2')
     seller_location = seller_location_element.find('b').text
     seller_category = driver.find_element(by=By.CLASS_NAME, value='css-ebxddb').get_attribute('alt')
+    print('seller_category', seller_category)
 
     seler_section = {
         'seller_name' : seller_name,
@@ -162,18 +191,25 @@ def getProductDetail(driver):
         'product_sold_quantity': get_quanity_of_product_sold if get_quanity_of_product_sold else '',
         'product_price': product_price
     }
+
+    print('product_detail', product_detail)
     # UPDATE-PRODUCT-SECTION #
     PRODUCT_DETAIL.update(product_detail)
+
+    print('PRODUCT_DETAIL',PRODUCT_DETAIL)
     
     #__SELLER SECTION
     
     scroll_height = 500
     driver.execute_script(f"window.scrollBy(0, {scroll_height});")
+    print('scrolled')
     time.sleep(10)
     
     SELLER_DETAIL = getSellerDetail(driver)
+    print('seller detail collected')
     # UPDATE-SELLER-SECTION #
     PRODUCT_DETAIL.update(SELLER_DETAIL)
+    print('product detail collected')
 
     #__CUSTOMER REVIEW SECTION
     scroll_height2 = 1000
