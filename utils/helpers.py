@@ -1,6 +1,10 @@
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from urllib.parse import unquote, urlparse, parse_qs
 import time 
+from datetime import datetime
+import pandas as pd
+import os
 
 def print_message(text, color, bold=False):
     color_code = ''
@@ -46,11 +50,16 @@ def scrollFromToptoBottom(dvr, boundary_component, byId=False, no_scroll_top=Fal
             print('scroll_count', scroll_count)
             time.sleep(sleepTime)
         
-    if is_boundary_component or scroll_count == timeout_scroll and not no_scroll_top:
-        dvr.execute_script("window.scrollTo(0, 0);")
-        return [True]
-    if is_boundary_component or scroll_count == timeout_scroll and no_scroll_top:
-        return [True]
+    if no_scroll_top == False:
+        if scroll_count == timeout_scroll or is_boundary_component:
+            print('get_this_func_1')
+            dvr.execute_script("window.scrollTo(0, 0);")
+            return [True]
+        
+    if no_scroll_top == True:
+        if is_boundary_component or scroll_count == timeout_scroll:
+            print('get_this_func_2')
+            return [True]
     else:
         return [False]
     
@@ -71,3 +80,51 @@ def flattenCustomerReviews(data, key1='', key2='', key3=''):
             del flattened_item[key1]
             flattened_data.append(flattened_item)
     return flattened_data
+
+
+def extractHrefParameter(url = ''):
+    # check if the url have redirect parameter
+    if 'r=https' in url:
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+        r_parameter_value = query_params.get('r', [])[0]
+        decoded_r_value = unquote(r_parameter_value)
+        return decoded_r_value
+    else:
+        return url
+
+def saveToCSV(array=[], keyword='', status='', optionalText=''):
+    current_datetime = datetime.now()
+    formatted_timestamp = current_datetime.strftime("%Y%m%d%H%M%S")
+    
+    storing = []
+    if len(array) > 0:
+        for i in array:
+            storing.extend(i)
+    print_message(f'STORING_DATA_{storing}', 'success', False)
+    print_message(f'array_{array}','success', False )
+    
+    if len(storing) > 0:
+        df = pd.DataFrame(storing)
+        df.index += 1
+        df.index.rename('number', inplace=True)
+
+        store_folder = 'csv_stores'
+
+        os.makedirs(store_folder, exist_ok=True)
+
+        success_folder = os.path.join(store_folder, 'success')
+        error_folder = os.path.join(store_folder, 'error')
+
+        os.makedirs(success_folder, exist_ok=True)
+        os.makedirs(error_folder, exist_ok=True)
+
+        file_path = ''
+
+        if status == 'success':
+            file_path = os.path.join(success_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
+
+        if status == 'failed':
+            file_path = os.path.join(error_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
+        
+        df.to_csv(file_path)
