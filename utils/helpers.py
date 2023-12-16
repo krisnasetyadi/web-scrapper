@@ -1,10 +1,18 @@
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+import logging
 from urllib.parse import unquote, urlparse, parse_qs
 import time 
 from datetime import datetime
 import pandas as pd
 import os
+
+logging.basicConfig(filename=f'helper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logging.getLogger().addHandler(console_handler)
 
 def print_message(text, color, bold=False):
     color_code = ''
@@ -79,6 +87,7 @@ def flattenCustomerReviews(data, key1='', key2='', key3=''):
             flattened_item[key3] = review[key3]
             del flattened_item[key1]
             flattened_data.append(flattened_item)
+    logging.info(f'flattened_data_data {flattened_data}')
     return flattened_data
 
 
@@ -99,10 +108,18 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
     
     storing = []
     if len(array) > 0:
+        isArrayOfObject = False
         for i in array:
-            storing.extend(i)
-    print_message(f'STORING_DATA_{storing}', 'success', False)
-    print_message(f'array_{array}','success', False )
+            if isinstance(i, list):
+                storing.extend(i)
+            elif isinstance(i, dict):
+                isArrayOfObject = True
+                break
+        if isArrayOfObject:
+            storing = array
+
+    logging.info(f'storing-stores {storing}')
+    logging.info(f'storing-array {array}')
     
     if len(storing) > 0:
         df = pd.DataFrame(storing)
@@ -115,16 +132,21 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
 
         success_folder = os.path.join(store_folder, 'success')
         error_folder = os.path.join(store_folder, 'error')
+        each_product_folder = os.path.join(store_folder, 'each_product')
 
         os.makedirs(success_folder, exist_ok=True)
         os.makedirs(error_folder, exist_ok=True)
+        os.makedirs(each_product_folder, exist_ok=True)
 
         file_path = ''
 
         if status == 'success':
             file_path = os.path.join(success_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
-
         if status == 'failed':
             file_path = os.path.join(error_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
-        
+        if status == 'success_each_item':
+            file_path = os.path.join(each_product_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
         df.to_csv(file_path)
+
+
+

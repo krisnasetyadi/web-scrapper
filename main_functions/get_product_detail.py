@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import logging
 
 # import custom helper functions
 from utils.helpers import print_message, scrollFromToptoBottom
@@ -29,7 +30,7 @@ def getReviewDetail(driver):
 
         total_review_string = total_reviews_element.text
         total_review = total_review_string.split()[3] if total_review_string else None
-        print('total reviews: ', total_review)
+        logging.info(f'total reviews: {total_review}')
         
         if total_review is not None:
             FIND_REVIEW_PAGE_CONTROLLER = detail_soup.find('div', class_='css-1xqkwi8')
@@ -46,18 +47,21 @@ def getReviewDetail(driver):
                 nav_button_container = driver.find_element(By.XPATH, '//div[@class="css-1xqkwi8"]')
                 nav_button_element = nav_button_container.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]')
                 last_pagination_button = nav_button_element[MAX_BUTTON_PER_NAV - 1].text if len(nav_button_element) == MAX_BUTTON_PER_NAV  else nav_button_element[len(nav_button_element) - 1].text
-                print('total pagination reviews:', int(last_pagination_button))
+
+                logging.info(f'total pagination: {int(last_pagination_button)}')
                 for i in range(int(last_pagination_button)):
-                    print(f'processing of {i} pagination')
+                    logging.info(f'processing of {i} pagination with total rows per page: {total_rows_per_page}')
                     with_pagination_review_count = 0
                     with_pagination_review_count_per_page = 0
-             
-                    current_active_button = findActiveButtons(nav_button_element, 'data-active')
-                    print('current_active_button', current_active_button)
 
-                    for review in current_rows_of_reviewers:
-                        customer_name = review.find('span', class_='name').text
-                        customer_review_container = review.find('p', class_='css-ed1s1j-unf-heading e1qvo2ff8')
+                    nav_button_container = driver.find_element(By.XPATH, '//div[@class="css-1xqkwi8"]')
+                    nav_button_element = nav_button_container.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]')
+             
+                    # current_active_button = findActiveButtons(nav_button_element, 'data-active')
+
+                    for review_index in range(total_rows_per_page):
+                        customer_name = current_rows_of_reviewers[review_index].find('span', class_='name').text
+                        customer_review_container = current_rows_of_reviewers[review_index].find('p', class_='css-ed1s1j-unf-heading e1qvo2ff8')
                         customer_review = customer_review_container.find('span').text if customer_review_container else ''
 
                         customer_review_item = {
@@ -69,36 +73,40 @@ def getReviewDetail(driver):
                         with_pagination_review_count += 1
                         with_pagination_review_count_per_page += 1
 
-                    if with_pagination_review_count_per_page == len(current_rows_of_reviewers):
-                        print('processing reviews with pagination...')
+                    if with_pagination_review_count_per_page == total_rows_per_page:
+
+                        logging.info('processing reviews with pagination...')
                         # why CLASS_NAME "css-bugrro-unf-pagination-item" declare twice ? to always refresh /fetch the element
                         nav_button_container_second = driver.find_element(By.XPATH, '//div[@class="css-1xqkwi8"]')
-                        
+                        time.sleep(2)
                         next_element = nav_button_container_second.find_elements(By.XPATH, '//button[@class="css-16uzo3v-unf-pagination-item"]')[1]
                         next_element_aria_label = next_element.get_attribute('aria-label')
                         next_element_is_disabled = next_element.get_attribute('disabled')
 
-                        if next_element_is_disabled:
-                            print(f'next_element_is_disabled: finished reviewed {review_list}')
+                        if next_element_aria_label == 'Laman berikutnya'and next_element_is_disabled:
                             return review_list
-                        elif next_element_aria_label == 'Laman berikutnya' and not next_element_is_disabled:
+                        
+                        if next_element_aria_label == 'Laman berikutnya' and (not next_element_is_disabled or next_element_is_disabled is None):
                             next_element.click()
-                            print('kesini ga')
+                            logging.info('next button clicked.')
+                            next_element = nav_button_container_second.find_elements(By.XPATH, '//button[@class="css-16uzo3v-unf-pagination-item"]')[1]
+                            next_element_aria_label = next_element.get_attribute('aria-label')
+                            next_element_is_disabled = next_element.get_attribute('disabled')
+
                             # reset the value and click
                             with_pagination_review_count_per_page = 0
 
                             time.sleep(5)
+
                             # Fetch the new set of current_rows_of_reviewers
-                            
+                            next_element = nav_button_container_second.find_elements(By.XPATH, '//button[@class="css-16uzo3v-unf-pagination-item"]')[1]
                             detail_content = driver.page_source
                             detail_soup_second = BeautifulSoup(detail_content, 'html.parser')
 
                             current_rows_of_reviewers = detail_soup_second.find_all('article', class_='css-72zbc4')
-                            nav_button_element_second = nav_button_container.find_elements(By.XPATH, '//button[@class="css-bugrro-unf-pagination-item"]')
-                            current_active_button = findActiveButtons(nav_button_element_second, 'data-active')
-                        else:
-                            print('malah_ini')
-                            return review_list
+                            total_rows_per_page = len(current_rows_of_reviewers)
+                            logging.info('resetting value after clicked.')
+                return review_list
             else:
                 # without pagination 
         
@@ -122,6 +130,7 @@ def getReviewDetail(driver):
 
                     no_pagination_review_count += 1
                     no_pagination_review_count_per_page += 1
+                logging.info(f'without pagination {review_list}')
                 return review_list
     else:
         # empty comments
@@ -163,6 +172,12 @@ def getSellerDetail(driver):
 def getProductDetail(driver):
     detail_content = driver.page_source
     detail_soup = BeautifulSoup(detail_content, 'html.parser')
+    logging.basicConfig(filename='product_detail.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(console_handler)
     time.sleep(10)
     PRODUCT_DETAIL = {}
     wait = WebDriverWait(driver, 30)
@@ -214,6 +229,8 @@ def getProductDetail(driver):
     REVIEW_DETAIL = getReviewDetail(driver)
 
     # UPDATE-REVIEW_DETAIL-SECTION #
+    logging.info(f'REVIEW_DETAIL_LIEADT {REVIEW_DETAIL}')
+    logging.info(f'PRODUCT_DETAIL_LIEADT {PRODUCT_DETAIL}')
     print('review detail collected')
 
     PRODUCT_DETAIL_RESULT = {}
@@ -222,5 +239,6 @@ def getProductDetail(driver):
         PRODUCT_DETAIL_RESULT['result'] = flattenCustomerReviews(PRODUCT_DETAIL, 'customer_reviews', 'customer_name', 'customer_review')
     else:
         PRODUCT_DETAIL.update({'customer_name': '', 'customer_review': ''})
+    logging.info(f"PRODUCT_DETAIL_RESULT{PRODUCT_DETAIL_RESULT['result']}")
     print_message(f'PRODUCT_DETAIL_RESULT {PRODUCT_DETAIL_RESULT}', 'info', True)
     return PRODUCT_DETAIL_RESULT['result'] if PRODUCT_DETAIL_RESULT else PRODUCT_DETAIL
