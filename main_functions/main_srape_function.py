@@ -11,22 +11,16 @@ from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.common.action_chains import ActionChains
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
-import logging
+
 # F U N C T I O N S
-from utils.helpers import print_message, scrollFromToptoBottom, saveToCSV
-from main_functions.config_parameters import BASE_SEARCH_URL_PARAMETER, PROXY_SERVER, KEYWORD
+from utils.helpers import print_message, scrollFromToptoBottom, saveToCSV, storingLoggingAs
+from config.config_parameters import BASE_SEARCH_URL_PARAMETER, PROXY_SERVER, KEYWORD
 
 from utils.product_list_helpers import getAllURLPerPage, openNewTabWindow
 
 MAX_RETRY = 10
 
 def scrapeTokopediaData(urls = []):
-    logging.basicConfig(filename='example.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    console_handler.setFormatter(formatter)
-    logging.getLogger().addHandler(console_handler)
 
     print_message(f'SCRAPE FUNCTION RUNNING ON PROXY {PROXY_SERVER} . . .', 'success', bold=True)
     proxy = Proxy()
@@ -57,17 +51,18 @@ def scrapeTokopediaData(urls = []):
         try:
             time.sleep(60)
             print('running without driver error')
-            logging.info('running without driver error')
-
+            storingLoggingAs('info', 'running without driver error')
             [scrolled] = scrollFromToptoBottom(driver, 'css-dmrkw7', False, True, 10)
-            print('scrolled', scrolled)
+            print('scrolled to footer', scrolled)
             wait = WebDriverWait(driver, 120)
             
-            # 'css-llwpbs' class that containt prd_container-card or css-19oqosi
-            wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="css-llwpbs"]')))
+            # 'css-llwpbs' class that containt prd_container-card or css-19oqosi (search)
+            # css-1xpribl e1nlzfl3 class that contain css-bk6tzz e1nlzfl2 (category)
+            wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="css-1xpribl e1nlzfl3"]')))
             print('waiting done')
-
-            all_item_each_page = driver.find_elements(By.XPATH, '//div[@class="css-19oqosi"]')
+            # css-19oqosi for search 
+            # for category class css-bk6tzz e1nlzfl2
+            all_item_each_page = driver.find_elements(By.XPATH, '//div[@class="css-bk6tzz e1nlzfl2"]')
 
             total_item_per_page = len(all_item_each_page)
 
@@ -78,14 +73,13 @@ def scrapeTokopediaData(urls = []):
             if len(urls) == total_item_per_page:
                 item_counter_page = 0
                 # current_url = driver.current_url
-                for url in urls:
+                for url_index, url in enumerate(urls):
                     time.sleep(10)
+                    storingLoggingAs('info', f'processing {url_index} of {len(urls)} url. opening new tab...')
+
                     openNewTabWindow(driver, url, LIST_OF_PRODUCT, KEYWORD)
                     item_counter_page += 1
-
-                    # new_url = driver.current_url
                     time.sleep(10)                   
-                    # if current_url != new_url:
                 print('item_counter_page', item_counter_page)
                 if len(LIST_OF_PRODUCT) > 0:
                     saveToCSV(LIST_OF_PRODUCT, KEYWORD, 'success')

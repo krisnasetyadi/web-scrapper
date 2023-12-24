@@ -1,4 +1,5 @@
 from selenium.common.exceptions import NoSuchElementException
+from logging.handlers import TimedRotatingFileHandler
 from selenium.webdriver.common.by import By
 import logging
 from urllib.parse import unquote, urlparse, parse_qs
@@ -6,13 +7,6 @@ import time
 from datetime import datetime
 import pandas as pd
 import os
-
-logging.basicConfig(filename=f'helper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-logging.getLogger().addHandler(console_handler)
 
 def print_message(text, color, bold=False):
     color_code = ''
@@ -87,7 +81,6 @@ def flattenCustomerReviews(data, key1='', key2='', key3=''):
             flattened_item[key3] = review[key3]
             del flattened_item[key1]
             flattened_data.append(flattened_item)
-    logging.info(f'flattened_data_data {flattened_data}')
     return flattened_data
 
 
@@ -118,8 +111,7 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
         if isArrayOfObject:
             storing = array
 
-    logging.info(f'storing-stores {storing}')
-    logging.info(f'storing-array {array}')
+    storingLoggingAs('info', f'storing-stores {storing}')
     
     if len(storing) > 0:
         df = pd.DataFrame(storing)
@@ -146,7 +138,38 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
             file_path = os.path.join(error_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
         if status == 'success_each_item':
             file_path = os.path.join(each_product_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
+            storing = []
         df.to_csv(file_path)
+
+def storingLoggingAs(status='', text='', additional_text=''):
+
+    level_logging = {
+        'info': logging.INFO,
+        'error': logging.ERROR, 
+        'warning': logging.WARNING
+    }
+
+    logs_folder = 'logs'
+    os.makedirs(logs_folder, exist_ok=True)
+    
+    log_file_path = os.path.join(logs_folder, f'scrapper.log')
+
+    logger = logging.getLogger('logger')  # Use a specific logger name
+    logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler = TimedRotatingFileHandler(log_file_path, when='H', interval=3, backupCount=24)
+    file_handler.setLevel(level_logging[status])
+    file_handler.setFormatter(formatter)
+
+    logging.log(level_logging[status], f'{additional_text}{text}')
+    
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level_logging[status])  # Adjust the level as needed
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
 
 
 
