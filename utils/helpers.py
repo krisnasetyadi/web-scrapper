@@ -1,12 +1,15 @@
 from selenium.common.exceptions import NoSuchElementException
-from logging.handlers import TimedRotatingFileHandler
 from selenium.webdriver.common.by import By
 import logging
-from urllib.parse import unquote, urlparse, parse_qs
-import time 
+
 from datetime import datetime
 import pandas as pd
+import pygame
+import time 
 import os
+import sys
+
+from urllib.parse import unquote, urlparse, parse_qs
 
 def print_message(text, color, bold=False):
     color_code = ''
@@ -112,6 +115,9 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
             storing = array
 
     storingLoggingAs('info', f'storing-stores {storing}')
+    current_storing_size = sys.getsizeof(storing)
+    current_array_size = sys.getsizeof(array)
+    storingLoggingAs('warning', f'size_of_array {current_array_size} -- size_of_storing {current_storing_size}')
     
     if len(storing) > 0:
         df = pd.DataFrame(storing)
@@ -141,7 +147,9 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
             storing = []
         df.to_csv(file_path)
 
-def storingLoggingAs(status='', text='', additional_text=''):
+def storingLoggingAs(status='', text=''):
+    current_date_time = datetime.now()
+    formatted_date_time = current_date_time.strftime("%Y%m%d")
 
     level_logging = {
         'info': logging.INFO,
@@ -152,24 +160,28 @@ def storingLoggingAs(status='', text='', additional_text=''):
     logs_folder = 'logs'
     os.makedirs(logs_folder, exist_ok=True)
     
-    log_file_path = os.path.join(logs_folder, f'scrapper.log')
+    log_file_path = os.path.join(logs_folder, f'scrapper_{formatted_date_time}.log')
 
-    logger = logging.getLogger('logger')  # Use a specific logger name
-    logger.setLevel(logging.DEBUG)
+    logger = logging.getLogger('logger') 
+    if not logger.handlers:
+        logger.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler = TimedRotatingFileHandler(log_file_path, when='H', interval=3, backupCount=24)
-    file_handler.setLevel(level_logging[status])
-    file_handler.setFormatter(formatter)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-    logging.log(level_logging[status], f'{additional_text}{text}')
+        file_handler = logging.FileHandler(log_file_path)
+        file_handler.setLevel(level_logging[status])
+        file_handler.setFormatter(formatter)
+
+        logger.addHandler(file_handler)
+
+    logger.log(level_logging[status], f'{text}')
     
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level_logging[status])  # Adjust the level as needed
-    console_handler.setFormatter(formatter)
 
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-
-
-
+def playSoundWithStatus(status='error', times=1):
+    pygame.mixer.init()
+   
+    sound_by_status = pygame.mixer.Sound(f'./sound_assets/{"collierhs_colinlib__elevator_ding" if status == "error" else "glass_ping_Go445"}.wav')
+   
+    for i in range(times):
+        sound_by_status.play()
+        pygame.time.wait(int(sound_by_status.get_length() * 1000))

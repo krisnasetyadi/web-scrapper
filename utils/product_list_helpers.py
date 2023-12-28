@@ -4,6 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import WebDriverException
 import time
+import sys
 
 from utils.helpers import extractHrefParameter
 from utils.helpers import print_message, scrollFromToptoBottom, saveToCSV, storingLoggingAs
@@ -29,7 +30,8 @@ def getAllURLPerPage(driver):
         redirect_urls.append(url)
     return redirect_urls
 
-def openNewTabWindow(driver, url, listProducts=[], keyword=''):
+def openNewTabWindow(driver, url, listProducts=[], keyword='', index_item=0, total_item=0):
+    max_size_threshold = 10 * 1024 * 1024  # 10 MB
     driver.execute_script("window.open('', '_blank');")
     # Switch to the new tab
     
@@ -47,13 +49,14 @@ def openNewTabWindow(driver, url, listProducts=[], keyword=''):
     print(f'scrolled finished: {scrolled}. trying to collect product detail')
     try:
         get_product_detail = getProductDetail(driver)
-        
+
         listProducts.append(get_product_detail)
         storingLoggingAs('info', f'listProducts {listProducts}')
-
+        current_size = sys.getsizeof(listProducts)
+        storingLoggingAs('warning', f'current_size_of_product_list_variable: {current_size}')
         time.sleep(30)
-        saveToCSV(listProducts, keyword, 'success_each_item', 'each_product')
-        storingLoggingAs('info', 'successfully saved in each products folder')
+        saveToCSV([get_product_detail], keyword, 'success_each_item', 'each_product')
+        storingLoggingAs('info', f'successfully saved in each products folder {index_item} of {total_item}')
         print_message(f'successfully saved in each products folder', 'success', True)
     except WebDriverException as e:
         if(len(listProducts) > 0):
@@ -66,3 +69,14 @@ def openNewTabWindow(driver, url, listProducts=[], keyword=''):
 
     # Switch back to the original tab
     driver.switch_to.window(driver.window_handles[0])
+
+
+def getTotalPagination (driver):
+    MAX_NAVIGATION_BUTTON = 11
+    NAV_CONTAINER_CLASS = 'css-txlndr-unf-pagination'
+
+    nav_pagination_container = driver.find_element(By.XPATH, f'//nav[@class="{NAV_CONTAINER_CLASS}"]') if driver.find_elements(By.XPATH, f'//nav[@class="{NAV_CONTAINER_CLASS}"]') else None
+    nav_button_element = nav_pagination_container.find_elements(By.TAG_NAME, 'li') if nav_pagination_container is not None else []
+    last_pagination_button = nav_button_element[MAX_NAVIGATION_BUTTON - 2].text if len(nav_button_element) == MAX_NAVIGATION_BUTTON  else nav_button_element[len(nav_button_element) - 2].text
+    return last_pagination_button
+

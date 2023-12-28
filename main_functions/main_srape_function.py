@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 from utils.helpers import print_message, scrollFromToptoBottom, saveToCSV, storingLoggingAs
 from config.config_parameters import BASE_SEARCH_URL_PARAMETER, PROXY_SERVER, KEYWORD
 
-from utils.product_list_helpers import getAllURLPerPage, openNewTabWindow
+from utils.product_list_helpers import getAllURLPerPage, openNewTabWindow, getTotalPagination
 
 MAX_RETRY = 10
 
@@ -49,7 +49,7 @@ def scrapeTokopediaData(urls = []):
     LIST_OF_PRODUCT = []
     if find_error_el is None:
         try:
-            time.sleep(60)
+            time.sleep(40)
             print('running without driver error')
             storingLoggingAs('info', 'running without driver error')
             [scrolled] = scrollFromToptoBottom(driver, 'css-dmrkw7', False, True, 10)
@@ -60,13 +60,20 @@ def scrapeTokopediaData(urls = []):
             # css-1xpribl e1nlzfl3 class that contain css-bk6tzz e1nlzfl2 (category)
             wait.until(EC.presence_of_element_located((By.XPATH, '//div[@class="css-1xpribl e1nlzfl3"]')))
             print('waiting done')
+
+            # product tidak ditemukan container div class css-rsd0q9    
+            total_pagination = getTotalPagination(driver)
+            print_message(f'get_total_pagination {int(total_pagination)}', 'info' )
+
+            # note pagination
+            #  - click the next element
+            #  - driver get (get_default) query by add query = 
             # css-19oqosi for search 
             # for category class css-bk6tzz e1nlzfl2
             all_item_each_page = driver.find_elements(By.XPATH, '//div[@class="css-bk6tzz e1nlzfl2"]')
 
             total_item_per_page = len(all_item_each_page)
 
-        
             urls = getAllURLPerPage(driver)
           
             print('IS_SAME_LENGTH', len(urls), total_item_per_page)
@@ -77,7 +84,7 @@ def scrapeTokopediaData(urls = []):
                     time.sleep(10)
                     storingLoggingAs('info', f'processing {url_index} of {len(urls)} url. opening new tab...')
 
-                    openNewTabWindow(driver, url, LIST_OF_PRODUCT, KEYWORD)
+                    openNewTabWindow(driver, url, LIST_OF_PRODUCT, KEYWORD, url_index, total_item_per_page)
                     item_counter_page += 1
                     time.sleep(10)                   
                 print('item_counter_page', item_counter_page)

@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
 
-from utils.helpers import storingLoggingAs
+from utils.helpers import storingLoggingAs, print_message
 
 def getReviewDetail(driver):
     print('processing review section . . .')
@@ -26,7 +26,7 @@ def getReviewDetail(driver):
         total_review_string = total_reviews_element.text
         total_review = total_review_string.split()[3] if total_review_string else None
         storingLoggingAs('info', f'total reviews: {total_review}')
-        # logging.info(f'total reviews: {total_review}')
+        print_message(f'total reviews {total_review}', 'info')
         
         if total_review is not None:
             FIND_REVIEW_PAGE_CONTROLLER = detail_soup.find('div', class_='css-1xqkwi8')
@@ -44,6 +44,7 @@ def getReviewDetail(driver):
                 last_pagination_button = nav_button_element[MAX_BUTTON_PER_NAV - 1].text if len(nav_button_element) == MAX_BUTTON_PER_NAV  else nav_button_element[len(nav_button_element) - 1].text
 
                 storingLoggingAs('info', f'total pagination: {int(last_pagination_button)}')
+                print_message(f'total pagination {int(last_pagination_button)}', 'info')
                 for i in range(int(last_pagination_button)):
                     storingLoggingAs('info', f'processing of {i} pagination with total rows per page: {total_rows_per_page}')
 
@@ -129,5 +130,6 @@ def getReviewDetail(driver):
                 return review_list
     else:
         # empty comments
+        storingLoggingAs('info', 'get empty comments...')
         print('get_empty_comments')
         return []

@@ -1,0 +1,6 @@
+BASE_URL = 'https://www.your-url.com/'
+CATEGORY_KEYWORD = 'your category'
+KEYWORD = f'your-keyword'
+PAGE=1
+BASE_SEARCH_URL_PARAMETER = f'{BASE_URL}p/{CATEGORY_KEYWORD}'
+PROXY_SERVER = '123.456.78.91:01112'

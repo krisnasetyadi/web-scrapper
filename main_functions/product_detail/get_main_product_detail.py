@@ -1,11 +1,10 @@
-# import libraries
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
-from utils.helpers import print_message, scrollFromToptoBottom, storingLoggingAs, flattenCustomerReviews
+from utils.helpers import scrollFromToptoBottom, storingLoggingAs, flattenCustomerReviews, print_message
 from main_functions.product_detail.get_seller_detail import getSellerDetail
 from main_functions.product_detail.get_reviews_detail import getReviewDetail
 
@@ -33,13 +32,13 @@ def getProductDetail(driver):
     product_detail = {
         'product_name': product_name,
         'product_category_index': product_category_index,
-        'product_sold_quantity': get_quanity_of_product_sold if get_quanity_of_product_sold else '',
+        'total_product_sold_quantity': get_quanity_of_product_sold if get_quanity_of_product_sold else '',
         'product_price': product_price,
         'product_original_price': product_original_price if product_original_price else ''
     }
 
     # UPDATE PRODUCT SECTION #
-    print('product detail collected')
+    print_message('product detail collected', 'success')
     PRODUCT_DETAIL.update(product_detail)
 
     # SELLER SECTION #
@@ -50,7 +49,7 @@ def getProductDetail(driver):
     SELLER_DETAIL = getSellerDetail(driver)
     
     # UPDATE SELLER SECTION #
-    print('seller detail collected')
+    print_message('seller detail collected', 'success')
     PRODUCT_DETAIL.update(SELLER_DETAIL)
 
     # CUSTOMER REVIEW SECTION #
@@ -65,7 +64,7 @@ def getProductDetail(driver):
 
     # logging.info(f'PRODUCT_DETAIL_LIEADT {PRODUCT_DETAIL}')
     storingLoggingAs('info', 'review detail collected successfully')
-    print('review detail collected')
+    print_message('review detail collected', 'success')
 
     PRODUCT_DETAIL_RESULT = {}
     if REVIEW_DETAIL is not None and len(REVIEW_DETAIL) > 0:
@@ -73,5 +72,5 @@ def getProductDetail(driver):
         PRODUCT_DETAIL_RESULT['result'] = flattenCustomerReviews(PRODUCT_DETAIL, 'customer_reviews', 'customer_name', 'customer_review')
     else:
         PRODUCT_DETAIL.update({'customer_name': '', 'customer_review': ''})
-    # logging.info(f"PRODUCT_DETAIL_RESULT{PRODUCT_DETAIL_RESULT['result'] if PRODUCT_DETAIL_RESULT else PRODUCT_DETAIL}")
-    return PRODUCT_DETAIL_RESULT['result'] if PRODUCT_DETAIL_RESULT else PRODUCT_DETAIL
+   
+    return PRODUCT_DETAIL_RESULT['result'] if PRODUCT_DETAIL_RESULT else [PRODUCT_DETAIL]
