@@ -146,6 +146,7 @@ def saveToCSV(array=[], keyword='', status='', optionalText=''):
             file_path = os.path.join(each_product_folder, f'product_{keyword}_{optionalText}{formatted_timestamp}.csv')
             storing = []
         df.to_csv(file_path)
+        playSoundWithStatus('success')
 
 def storingLoggingAs(status='', text=''):
     current_date_time = datetime.now()
@@ -185,3 +186,7 @@ def playSoundWithStatus(status='error', times=1):
     for i in range(times):
         sound_by_status.play()
         pygame.time.wait(int(sound_by_status.get_length() * 1000))
+
+
+def extractCurrentUrlPage(url):
+    return url.split('=')[1]
